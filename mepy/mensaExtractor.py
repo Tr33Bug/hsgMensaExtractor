@@ -171,5 +171,115 @@ def get_mensaplan(week=1, mensa_location="hsg", path="mensaplan.pdf", get_pdf=Tr
         return None
     
 
+def get_day_menue(day=0, mensa_locations=["hsg", "fhs"], export_json=False):
+    """Function to get the Mensa menue from different locations for a specific day
     
+    Args:
+        day (int): The day of the week. (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+        mensa_locations (list): List of mensa locations. Defaults to ["hsg", "fhs"].)
+        export_json (bool): If True, the JSON object will be saved to a file. Defaults to False.
+    
+    Returns:
+        day_menue (json): JSON object with the menue for the day
+    """
+    # get the current week
+    week = 1
+
+    # get the mensaplan for the set locations for the current week
+    mensaplan = {}
+    mensa_json = []
+    for mensa_location in mensa_locations:
+        mensaplan[mensa_location] = get_mensaplan(week=1, mensa_location=mensa_location, path=f"mensaplan_{mensa_location}.pdf", get_pdf=False)
+
+        # drop all rows that are not equal to the current day
+        mensaplan[mensa_location] = mensaplan[mensa_location].loc[day]
+
+        # Convert the Series to a dictionary, using the column names as keys
+        mensaplan_dict = mensaplan[mensa_location].to_dict()
+
+        # Add the mensa_location as a key
+        mensa_json.append({
+            "mensa": mensa_location,
+            "content": mensaplan_dict
+        })
+
+    # check json format
+    import json 
+    mensa_json = json.dumps(mensa_json, ensure_ascii=False, indent=4) 
+
+
+    # Save mensa_json to a json file (optional)
+    if export_json:
+        with open("mensaplan.json", "w") as f:
+            json.dump(mensa_json, f, ensure_ascii=False, indent=4)
+
+
+    
+    return mensa_json
+
+import concurrent.futures
+import json
+
+def get_day_menue_with_futures(day=0, mensa_locations=["hsg", "fhs"], export_json=False):
+    """Function to get the Mensa menu from different locations for a specific day
+    
+    Args:
+        day (int): The day of the week. (0 = Monday, 1 = Tuesday, ..., 6 = Sunday)
+        mensa_locations (list): List of mensa locations. Defaults to ["hsg", "fhs"].
+        export_json (bool): If True, the JSON object will be saved to a file. Defaults to False.
+    
+    Returns:
+        day_menue (json): JSON object with the menu for the day
+    """
+    # get the current week
+    week = 1
+
+    # Function to fetch mensaplan for each mensa_location
+    def fetch_mensaplan(mensa_location):
+        mensaplan_data = get_mensaplan(week=1, mensa_location=mensa_location, path=f"mensaplan_{mensa_location}.pdf", get_pdf=False)
+        # drop all rows that are not equal to the current day
+        mensaplan_data = mensaplan_data.loc[day]
+        # Convert the Series to a dictionary, using the column names as keys
+        mensaplan_dict = mensaplan_data.to_dict()
+        return mensa_location, mensaplan_dict
+
+    # Use ThreadPoolExecutor to parallelize the fetching of mensaplan
+    mensa_json = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Map mensa_locations to fetch_mensaplan function
+        results = executor.map(fetch_mensaplan, mensa_locations)
+
+        # Collect results into the final json structure
+        for mensa_location, mensaplan_dict in results:
+            mensa_json.append({
+                "mensa": mensa_location,
+                "content": mensaplan_dict
+            })
+
+    # check json format
+    mensa_json = json.dumps(mensa_json, ensure_ascii=False, indent=4)
+
+    # Save mensa_json to a json file (optional)
+    if export_json:
+        with open("mensaplan.json", "w") as f:
+            json.dump(mensa_json, f, ensure_ascii=False, indent=4)
+
+    return mensa_json
+
+    
+
+def get_today_menue(mensa_locations=["hsg", "fhs"]):
+    """ Function to get the mensa menue for the current day
+
+    Args:
+        mensa_locations (list): List of mensa locations. Defaults to ["hsg", "fhs"].)
+    
+    Returns:
+        day_menue (json): JSON object with the menue for the day
+    """
+
+    import datetime
+    day = datetime.datetime.today().weekday()
+
+    return get_day_menue(day, mensa_locations)
     
