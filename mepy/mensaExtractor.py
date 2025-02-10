@@ -19,30 +19,32 @@ def clean_mensaplan_df(weekplan_pdf_df, mensa_location):
     Returns:
         pandas.DataFrame: the cleaned dataframe
     """
+    
+    # find columns that include CHF in any writing and save them in a list
+    columns_with_price = []
+    for column in weekplan_pdf_df.columns:
+        if weekplan_pdf_df[column].str.contains("CHF").any():
+            columns_with_price.append(column)
 
-    # switch case if mensa hsg or fhs
+
+
+    # drop all columns that are not in the columns_with_price list
+    columns_to_drop = [column for column in weekplan_pdf_df.columns if column not in columns_with_price]
+    weekplan_pdf_df = weekplan_pdf_df.drop(columns_to_drop, axis=1)
+
+    # drop all rows with none values
+    weekplan_pdf_df = weekplan_pdf_df.dropna()
+
     if mensa_location == "hsg":
-        # drop first row
-        weekplan_pdf_df = weekplan_pdf_df.drop(0)
+        # drop first column with price (columns_with_price[0])
+        weekplan_pdf_df = weekplan_pdf_df.drop(columns_with_price[0], axis=1)
 
-        
-
-        # join columns 6 and 7 to one column and drop the original columns
-        weekplan_pdf_df[6] = weekplan_pdf_df[6] + " " + weekplan_pdf_df[7]
-
-        # drop columns 
-        columns_to_drop = [1,3,5,7,8]
-        weekplan_pdf_df = weekplan_pdf_df.drop(columns_to_drop, axis=1)
-
-        # drop tagessuppe column
-        weekplan_pdf_df = weekplan_pdf_df.drop(0, axis=1)
-    elif mensa_location == "fhs":
-        # drop column 1,2,4,5,7 
-        columns_to_drop = [1,2,4,5,7]
-        weekplan_pdf_df = weekplan_pdf_df.drop(columns_to_drop, axis=1)
-    else:
-        print("Mensa location not found")
+    # test if the number of columns is correct
+    if len(weekplan_pdf_df.columns) != 3:
+        print("Parsing error - See cleanup function")
+        print(f"Columns: {weekplan_pdf_df.head()}")
         return None
+
     
     # cleanup and rename columns and rows
     weekplan_pdf_df.columns = ["Fast Lane", "Daily Favourites", "Lifestyle"]
@@ -205,7 +207,8 @@ def get_day_menue(day=0, mensa_locations=["hsg", "fhs"], export_json=False):
 
     # check json format
     import json 
-    mensa_json = json.dumps(mensa_json, ensure_ascii=False, indent=4) 
+    mensa_json = json.dumps(mensa_json, ensure_ascii=False, indent=4)
+    mensa_json = json.loads(mensa_json)
 
 
     # Save mensa_json to a json file (optional)
@@ -258,6 +261,7 @@ def get_day_menue_with_futures(day=0, mensa_locations=["hsg", "fhs"], export_jso
 
     # check json format
     mensa_json = json.dumps(mensa_json, ensure_ascii=False, indent=4)
+    mensa_json = json.loads(mensa_json)
 
     # Save mensa_json to a json file (optional)
     if export_json:
