@@ -21,13 +21,15 @@ The original mensa menues are here:
 conda create --name hsgMensaExtractorEnv python=3.11
 conda activate hsgMensaExtractorEnv
 ```
-2. Install packages
+2. Install packages from requirements.txt (mainly `requests`, `pandas` and `pdfplumber`)
 ```bash
-pip install requests pandas pdfplumber
+pip install -r requirements.txt
 ```
 
 ## Usage
-Call function from the [mepy/mensaExtractor.py](mepy/mensaExtractor.py) file. For example usage see [./ME_Example.ipynb](./ME_Example.ipynb). 
+Call function from the [mepy/mensaExtractor.py](mepy/mensaExtractor.py) file. 
+
+For interactive example usage see [./ME_Example.ipynb](./ME_Example.ipynb). 
 
 ## License
 This project is licensed under the MIT License.
